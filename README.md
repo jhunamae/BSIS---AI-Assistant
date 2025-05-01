@@ -72,7 +72,8 @@ cd BSIS---AI-Assistant/school_ai
 
 Install dependencies:
 
-pip install -r requirements.txt
+pip install flask
+pip install fuzzywuzzy
 
 Run app.py
 
