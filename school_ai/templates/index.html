@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZDSPGC School AI</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            font-family: 'Courier New', Courier, monospace;
+            background: black;
+            overflow: hidden;
+            color: #00ff99;
+            font-size: small;
+        }
+
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            width: 95%;
+            height: 95vh;
+            margin: 2.5vh auto;
+            background: rgba(0, 0, 0, 0.85);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 0 20px #00ff99;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            color: #00ffe0;
+            text-shadow: 0 0 10px #00ffe0;
+            margin: 10px 0;
+        }
+
+        input[type="text"] {
+            width: 90%;
+            padding: 15px;
+            border: none;
+            border-radius: 5px;
+            background: #111;
+            color: #00ff99;
+            font-size: 1.2em;
+            margin: 10px 0;
+            box-shadow: 0 0 10px #00ff99;
+            box-sizing: border-box;
+        }
+
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            background: #00ff99;
+            color: black;
+            font-weight: bold;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: 0.3s;
+            box-shadow: 0 0 10px #00ff99;
+            margin: 10px 0;
+        }
+
+        button:hover {
+            background: #00ffe0;
+            box-shadow: 0 0 15px #00ffe0;
+        }
+
+        h3, h4 {
+            color: #00ffe0;
+            text-shadow: 0 0 8px #00ffe0;
+            margin: 15px 0;
+        }
+
+        p, li {
+            font-size: 1.2em;
+            color: #ffffff;
+            text-shadow: 0 0 5px #00ff99;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 15px 0;
+            padding-left: 20px;
+            text-align: left;
+            color: #00ffcc;
+            font-style: italic;
+        }
+
+        li {
+            margin: 10px 0;
+        }
+
+        #answer-box {
+            text-align: left;
+            padding: 15px;
+            white-space: pre-line;
+            flex-grow: 1;
+            overflow-y: auto;
+            margin: 15px 0;
+            border: 1px solid #00ff99;
+            border-radius: 10px;
+            box-shadow: 0 0 10px #00ff99;
+            min-height: 200px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        #answer-box p.placeholder {
+            font-style: italic;
+            color: #cccccc;
+            text-align: center;
+            margin-top: 50px;
+        }
+
+        .form-container {
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                width: 98%;
+                height: 98vh;
+                margin: 1vh auto;
+                padding: 10px;
+            }
+            
+            h1 {
+                font-size: 1.8em;
+            }
+            
+            input[type="text"] {
+                width: 95%;
+                padding: 12px;
+                font-size: 1em;
+            }
+            
+            button {
+                padding: 10px 20px;
+                font-size: 1em;
+            }
+            
+            #answer-box {
+                padding: 10px;
+                min-height: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Matrix-style canvas background -->
+    <canvas id="matrix"></canvas>
+
+    <div class="container">
+        <h1>ZDSPGC - AURORA School AI Assistant</h1>
+        
+        <div class="form-container">
+            <form method="POST">
+                <input type="text" name="question" placeholder="Type your question here..." required>
+                <button type="submit">Ask</button>
+            </form>
+        </div>
+
+        <h3>Answer:</h3>
+        <div id="answer-box">
+            {% if not response %}
+                <p class="placeholder">
+                    Feel Free To Ask Our Artificial Intelligence of BSIS Department in Zamboanga del Sur Provincial Government College - Aurora Campus
+                </p>
+            {% endif %}
+        </div>
+        
+        {% if response %}
+        <script id="response-data" type="application/json">
+            {{ response | tojson | safe }}
+        </script>
+        {% endif %}
+
+        {% if suggestions %}
+        <script id="suggestions-data" type="application/json">
+            {{ suggestions | tojson | safe }}
+        </script>
+       
+        {% endif %}
+    </div>
+
+    <script>
+        // Matrix animation
+        const canvas = document.getElementById("matrix");
+        const ctx = canvas.getContext("2d");
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            initMatrix();
+        }
+
+        function initMatrix() {
+            const letters = "01";
+            const fontSize = 16;
+            const columns = Math.floor(canvas.width / fontSize);
+            
+            // Create drops array with proper length
+            window.drops = Array(columns).fill(1);
+        }
+
+        function drawMatrix() {
+            ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = "#00ff99";
+            ctx.font = "16px monospace";
+
+            for (let i = 0; i < window.drops.length; i++) {
+                const text = Math.random() > 0.5 ? "0" : "1";
+                ctx.fillText(text, i * 16, window.drops[i] * 16);
+
+                if (window.drops[i] * 16 > canvas.height && Math.random() > 0.975) {
+                    window.drops[i] = 0;
+                }
+
+                window.drops[i]++;
+            }
+        }
+
+        // Initialize and start animation
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        const matrixInterval = setInterval(drawMatrix, 10);
+
+        // Response typing animation
+        function displayResponse() {
+            try {
+                const responseElement = document.getElementById("response-data");
+                const suggestionsElement = document.getElementById("suggestions-data");
+                
+                if (!responseElement) return;
+                
+                const answerBox = document.getElementById("answer-box");
+                answerBox.innerHTML = '';
+                
+                const response = JSON.parse(responseElement.textContent);
+                const suggestions = suggestionsElement ? JSON.parse(suggestionsElement.textContent) : [];
+                const lines = response.split('\n');
+                let lineIndex = 0;
+
+                function typeLine(line, callback) {
+                    const p = document.createElement('p');
+                    p.style.marginLeft = line.trim().toLowerCase().startsWith("step") ? '20px' : '0';
+                    answerBox.appendChild(p);
+
+                    let i = 0;
+                    let typedLine = '';
+
+                    function typeChar() {
+                        if (i < line.length) {
+                            typedLine += line.charAt(i);
+                            p.textContent = typedLine;
+                            p.scrollIntoView({ behavior: "smooth", block: "end" });
+                            i++;
+                            setTimeout(typeChar, 10);
+                        } else {
+                            callback();
+                        }
+                    }
+
+                    typeChar();
+                }
+
+                function typeAllLines() {
+                    if (lineIndex < lines.length) {
+                        typeLine(lines[lineIndex], () => {
+                            lineIndex++;
+                            typeAllLines();
+                        });
+                    } else if (suggestions.length > 0) {
+                        const h4 = document.createElement("h4");
+                        h4.textContent = "Did you mean:";
+                        h4.style.marginTop = "15px";
+                        answerBox.appendChild(h4);
+
+                        const ul = document.createElement("ul");
+                        suggestions.forEach(s => {
+                            const li = document.createElement("li");
+                            li.textContent = s;
+                            ul.appendChild(li);
+                        });
+
+                        answerBox.appendChild(ul);
+                    }
+                }
+
+                typeAllLines();
+            } catch (error) {
+                console.error("Error displaying response:", error);
+            }
+        }
+
+        // Check if we have a response to display
+        if (document.getElementById("response-data")) {
+            displayResponse();
+        }
+    </script>
+</body>
+</html>
